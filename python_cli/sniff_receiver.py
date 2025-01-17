@@ -7,6 +7,7 @@
 
 import argparse, sys
 import time
+import json
 from binascii import unhexlify
 from OpenDroneID.decoder import decode
 from sniffle.pcap import PcapBleWriter
@@ -61,7 +62,30 @@ def main():
     aparse.add_argument("-z", "--zmq", action="store_true", help="Enable zmq")
     aparse.add_argument("--zmqport", default="4224", help="Define zmq port")
     aparse.add_argument("--zmqhost", default="127.0.0.1", help="Define zmq host")
+    aparse.add_argument("-mq", "--mqtt", action="store_true", help="Enable mqtt")
+    aparse.add_argument("--mqttport", default='9701', help="Define mqtt port")
+    aparse.add_argument("--mqtthost", default="222.190.143.158", help="Define mqtt host")
+    aparse.add_argument("--mqttusername", default="sunoff_oid_client", help="Define mqtt username")
+    aparse.add_argument("--mqttpassword", default="123456", help="Define mqtt password") 
     args = aparse.parse_args()
+    
+    # added
+    # args.longrange = True
+    # args.extadv = True
+    # args.mqtt = True
+    
+    if args.mqtt:
+        from mqtt_client import SimpleMQTTClient
+        from oid_to_magicsky import oid_to_magicsky
+        
+        mqtt_client = SimpleMQTTClient(
+            broker_address=args.mqtthost, 
+            port=int(args.mqttport), 
+            topic="drone/position",
+            username=args.mqttusername,
+            password=args.mqttpassword
+        )
+        mqtt_client.start()
 
     if args.zmq:
         import zmq
@@ -173,19 +197,48 @@ def main():
     while True:
         try:
             msg = hw.recv_and_decode()
-            if msg.pdutype == 'AUX_ADV_IND' and msg.aa==0x8e89bed6:
+            #if msg.pdutype == 'AUX_ADV_IND' and msg.aa==0x8e89bed6:
+            if msg == None:
+                continue
+
+            # print(msg)
+
+            if msg.pdutype == 'AUX_ADV_IND':
+                if msg.aa != 0x8e89bed6:
+                    # print("************ AUX_ADV_IND not 0x8e89bed6 ***************")
+                    # print_message(msg, args.quiet, args.decode)
+                    continue
+                
                 data = bytearray(msg.adv_data)
                 if data[1]==0x16 and int.from_bytes(data[2:4],'little')==0xFFFA and data[4]==0x0D:
                     # Open Drone ID
-                    print("Open Drone ID\n-------------------------\n")
+                    # print("Open Drone ID -------------------------\n")
                     json_data = decode(data)
                     if args.zmq:
                         socket.send_string(json_data)
-                    print(json_data)
-                    print()
-                    sys.stdout.flush()
+                    # print(json_data)
+                    # print()
+                    # sys.stdout.flush()
+                    
+                    if args.mqtt:
+                        # mqtt_client.send_message(json_data)
+                        # pass
+                              
+                        packet_data = oid_to_magicsky(json_data)   
+                        if len(packet_data):
+                            mqtt_client.send_message(packet_data)
             else:
-                print_message(msg, args.quiet, args.decode)
+                pass
+                if msg.pdutype == 'ADV_EXT_IND':
+                    pass
+                    # print("************ ADV_EXT_IND ***************")
+                    # print_message(msg, args.quiet, args.decode)
+                    
+                # if msg.pdutype == 'ADV_IND':
+                #     print("************ ADV_IND ***************")
+                #     print_message(msg, args.quiet, args.decode)
+                
+            #print_message(msg, args.quiet, args.decode)
         except SourceDone:
             break
         except KeyboardInterrupt:
@@ -193,6 +246,8 @@ def main():
                 socket.close()
             hw.cancel_recv()
             sys.stderr.write("\r")
+            if args.mqtt:
+                mqtt_client.stop()
             break
 
 def print_message(msg, quiet, decode_ad):

@@ -196,7 +196,7 @@ class Coord:
             return "Undefined"
         else:
             return f"{value * 0.5 - 1000} m"
-
+        
     def decode_coord(self, data):
         if data == 0:
             return "Unknown"
