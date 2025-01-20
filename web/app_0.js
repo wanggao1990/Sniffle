@@ -42,22 +42,23 @@ function initMap() {
         port: 9703, // WebSocket端口（通常为8083或8084）
         path: '/mqtt', // MQTT over WebSocket的路径
     };
+    const mqttTopic = 'bluetooth-drone-monitoring'
 
     // 连接MQTT Broker
     const client = mqtt.connect(options);
 
     client.on('connect', () => {
         console.log('Connected to MQTT Broker');
-        client.subscribe('drone/position', (err) => {
+        client.subscribe(mqttTopic, (err) => {
             if (!err) {
-                console.log('Subscribed to drone/position');
+                console.log('Subscribed to ' + mqttTopic);
             }
         });
     });
 
     // 接收MQTT消息并更新无人机位置
     client.on('message', (topic, message) => {
-        if (topic === 'drone/position') {
+        if (topic === mqttTopic) {
             const position = JSON.parse(message.toString());
             // console.log('Received drone position:', position);
             const angle = Number(position[0].flyDirection);
