@@ -81,7 +81,7 @@ def main():
         mqtt_client = SimpleMQTTClient(
             broker_address=args.mqtthost, 
             port=int(args.mqttport), 
-            topic="drone/position",
+            topic="bluetooth-drone-monitoring",
             username=args.mqttusername,
             password=args.mqttpassword
         )
@@ -224,7 +224,7 @@ def main():
                         # mqtt_client.send_message(json_data)
                         # pass
                               
-                        packet_data = oid_to_magicsky(json_data)   
+                        packet_data = oid_to_magicsky(json_data, hw.serial_number)
                         # if len(packet_data):
                         if packet_data != '[]':
                             mqtt_client.send_message(packet_data)

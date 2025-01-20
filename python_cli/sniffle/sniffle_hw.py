@@ -51,7 +51,8 @@ def find_sonoff_serport():
     # an iSerial of 0001, at least based on examples that Slawomir Jasek has seen.
     # The CP2102 (non-N) dongles appear to have been produced in 2022 and have
     # serial numbers starting with 203... printed on the back.
-    sonoff_ports = [i[0] for i in comports() if (
+    sonoff_ports = [(i[0],i.serial_number) for i in comports() if (
+    # sonoff_ports = [i[0] for i in comports() if (
         i.vid == 0x10C4 and
         i.pid == 0xEA60 and
         (i.manufacturer == "ITead" or i.manufacturer == "Silicon Labs") and
@@ -101,11 +102,13 @@ class SniffleHW:
         if serport is None:
             serport = find_xds110_serport()
             if serport is None:
-                serport = find_sonoff_serport()
+                # serport = find_sonoff_serport()
+                serport, serial_num = find_sonoff_serport()
                 if serport is None:
                     raise IOError("Sniffle device not found")
                 elif baudrate is None:
                     baud = 921600
+                self.serial_number = serial_num
         elif is_cp2102(serport):
             if baudrate is None:
                 baud = 921600

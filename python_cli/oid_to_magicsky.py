@@ -330,7 +330,7 @@ def oid_to_magicsky_v1(oid_packtet: list):
 # def oid_to_magicsky_v2(json_string):   
 #     oid_packtet = json.loads(json_string)
 
-def oid_to_magicsky_v2(oid_packtet: list):
+def oid_to_magicsky_v2(oid_packtet: list, dev_sn = None):
      
     magicsky_packets = []
     
@@ -362,6 +362,9 @@ def oid_to_magicsky_v2(oid_packtet: list):
             # NO NEED decode using xiaofang datas
             magicsky_packet = dict()
             
+            if dev_sn:
+                magicsky_packet['deviceSn'] = dev_sn
+               
             magicsky_packet['uavSn'] = uav_id
             magicsky_packet['productType'] = ua_type
             magicsky_packet['uavLongitude'] = LocationVector['longitude']
@@ -375,13 +378,13 @@ def oid_to_magicsky_v2(oid_packtet: list):
     return magicsky_packets
 
 
-def oid_to_magicsky(json_string: str):
+def oid_to_magicsky(json_string: str, device_sn = None):
     # return oid_to_magicsky_v1(json_string)
     
     json_data = json.loads(json_string)    
     if type(json_data[0]) != list:
         json_data = [json_data]   
-    json_packet = oid_to_magicsky_v2(json_data)
+    json_packet = oid_to_magicsky_v2(json_data, device_sn)
     return json.dumps(json_packet)
 
 
