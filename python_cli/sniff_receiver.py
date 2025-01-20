@@ -225,7 +225,8 @@ def main():
                         # pass
                               
                         packet_data = oid_to_magicsky(json_data)   
-                        if len(packet_data):
+                        # if len(packet_data):
+                        if packet_data != '[]':
                             mqtt_client.send_message(packet_data)
             else:
                 pass
